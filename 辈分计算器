@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家族辈份关系计算器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e0f7ff 0%, #c5ebff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        /* 简约开屏动画 */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #7fd4f0 0%, #9ce6e3 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.6s ease-out;
+        }
+        
+        .splash-logo {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 30px;
+            animation: float 2s ease-in-out infinite;
+        }
+        
+        .splash-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .splash-title {
+            font-size: 28px;
+            font-weight: 500;
+            color: white;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .splash-loader {
+            width: 120px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            margin-top: 30px;
+            border-radius: 1px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .splash-loader::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 40%;
+            background: white;
+            border-radius: 1px;
+            animation: loaderMove 1s ease-in-out forwards;
+        }
+        
+        /* 主应用容器 */
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(102, 153, 204, 0.2);
+            overflow: hidden;
+            position: relative;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #7fd4f0 0%, #9ce6e3 100%);
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            height: 120px;
+        }
+        
+        .app-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .app-title {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 1px;
+        }
+        
+        .music-control {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .music-control:hover {
+            color: #fff;
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .music-control.playing {
+            color: #ff8fbd;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .display {
+            padding: 30px 20px 20px;
+            background: rgba(245, 253, 255, 0.6);
+            border-bottom: 1px solid rgba(170, 220, 230, 0.3);
+        }
+        
+        .expression {
+            font-size: 24px;
+            height: 45px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4a6572;
+            font-weight: 500;
+            letter-spacing: 1px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 5px;
+        }
+        
+        .result {
+            font-size: 26px;
+            font-weight: bold;
+            height: 50px;
+            text-align: center;
+            color: #5db0d5;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.5s;
+        }
+        
+        .buttons {
+            padding: 25px 15px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .btn {
+            background: rgba(156, 230, 227, 0.3);
+            border: 2px solid rgba(127, 212, 240, 0.25);
+            border-radius: 15px;
+            padding: 16px 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a6572;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(127, 212, 240, 0.15);
+        }
+        
+        .btn:hover {
+            background: rgba(156, 230, 227, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(127, 212, 240, 0.25);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-delete {
+            background: rgba(255, 173, 173, 0.4);
+            color: #4a6572;
+            border-color: rgba(255, 173, 173, 0.3);
+        }
+        
+        .btn-clear {
+            background: rgba(255, 173, 210, 0.4);
+            color: #4a6572;
+            border-color: rgba(255, 173, 210, 0.3);
+        }
+        
+        .btn-calc {
+            background: rgba(173, 127, 240, 0.3);
+            color: #4a6572;
+            border-color: rgba(173, 127, 240, 0.25);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            color: #7f9ba8;
+            background: rgba(245, 253, 255, 0.6);
+            border-top: 1px solid rgba(170, 220, 230, 0.3);
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes loaderMove {
+            0% { left: -40%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 隐藏的音频元素 */
+        #bgm-container {
+            position: absolute;
+            top: 0;
+            left: -9999px;
+            opacity: 0;
+        }
+        
+        @media (max-width: 480px) {
+            .buttons {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 14px 5px;
+                font-size: 15px;
+            }
+            
+            .music-control {
+                top: 15px;
+                left: 15px;
+                font-size: 20px;
+            }
+            
+            .app-icon {
+                font-size: 36px;
+            }
+            
+            .splash-logo {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .splash-icon {
+                font-size: 50px;
+            }
+            
+            .splash-title {
+                font-size: 24px;
+            }
+            
+            .expression {
+                font-size: 20px;
+            }
+            
+            .result {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 简约开屏动画 -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo">
+            <i class="splash-icon fas fa-project-diagram"></i>
+        </div>
+        <div class="splash-title">家族辈份关系计算器</div>
+        <div class="splash-loader"></div>
+    </div>
+    
+    <!-- 主应用容器 -->
+    <div class="container" id="appContainer">
+        <!-- 音乐控制图标 -->
+        <div class="music-control" id="musicControl">
+            <i class="fas fa-music"></i>
+        </div>
+        
+        <!-- 音频播放器 (隐藏) -->
+        <div id="bgm-container">
+            <audio id="bgm" loop>
+                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+                您的浏览器不支持音频元素
+            </audio>
+        </div>
+        
+        <div class="header">
+            <div class="app-icon">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <div class="app-title">家族辈份关系计算器</div>
+        </div>
+        
+        <div class="display">
+            <div class="expression" id="expression">请添加关系...</div>
+            <div class="result" id="result"></div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn" data-rel="我">我</button>
+            <button class="btn" data-rel="父亲">父亲</button>
+            <button class="btn" data-rel="母亲">母亲</button>
+            <button class="btn" data-rel="爷爷">爷爷</button>
+            
+            <button class="btn" data-rel="哥哥">哥哥</button>
+            <button class="btn" data-rel="弟弟">弟弟</button>
+            <button class="btn" data-rel="姐姐">姐姐</button>
+            <button class="btn" data-rel="妹妹">妹妹</button>
+            
+            <button class="btn" data-rel="儿子">儿子</button>
+            <button class="btn" data-rel="女儿">女儿</button>
+            <button class="btn" data-rel="孙子">孙子</button>
+            <button class="btn" data-rel="孙女">孙女</button>
+            
+            <!-- 删除按钮 -->
+            <button class="btn btn-delete" id="delete">删除</button>
+            <button class="btn btn-clear" id="clear">清空</button>
+            <button class="btn btn-calc" id="calculate">计算</button>
+        </div>
+        
+        <div class="footer">
+            <p>家族关系计算工具 | 轻松理清复杂辈份关系</p>
+        </div>
+    </div>
+
+    <script>
+        // 开屏动画控制
+        const splashScreen = document.getElementById('splashScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        // 显示开屏动画1.2秒后切换到主界面
+        setTimeout(() => {
+            splashScreen.style.opacity = '0';
+            
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+                appContainer.style.opacity = '1';
+                appContainer.style.transform = 'translateY(0)';
+            }, 600);
+        }, 1200);
+        
+        // ====== 辈份关系计算逻辑 ======
+        const relationships = {
+            '我': { generation: 0, gender: '中性' },
+            '自己': { generation: 0, gender: '中性' },
+            '父亲': { generation: 1, gender: '男' },
+            '母亲': { generation: 1, gender: '女' },
+            '爷爷': { generation: 2, gender: '男' },
+            '奶奶': { generation: 2, gender: '女' },
+            '外公': { generation: 2, gender: '男' },
+            '外婆': { generation: 2, gender: '女' },
+            '哥哥': { generation: 0, gender: '男' },
+            '弟弟': { generation: 0, gender: '男' },
+            '姐姐': { generation: 0, gender: '女' },
+            '妹妹': { generation: 0, gender: '女' },
+            '儿子': { generation: -1, gender: '男' },
+            '女儿': { generation: -1, gender: '女' },
+            '孙子': { generation: -2, gender: '男' },
+            '孙女': { generation: -2, gender: '女' },
+            '侄子': { generation: -1, gender: '男' },
+            '侄女': { generation: -1, gender: '女' },
+            '外甥': { generation: -1, gender: '男' },
+            '外甥女': { generation: -1, gender: '女' }
+        };
+
+        const titles = {
+            '-4': { '男': '玄孙', '女': '玄孙女' },
+            '-3': { '男': '曾孙', '女': '曾孙女' },
+            '-2': { '男': '孙', '女': '孙女' },
+            '-1': { '男': '子', '女': '女' },
+            '0': { '男': '兄弟', '女': '姐妹', '中性': '自己' },
+            '1': { '男': '父', '女': '母' },
+            '2': { '男': '祖父', '女': '祖母' },
+            '3': { '男': '曾祖父', '女': '曾祖母' },
+            '4': { '男': '高祖父', '女': '高祖母' },
+        };
+
+        const specialRelations = {
+            '哥哥→儿子': '侄子',
+            '哥哥→女儿': '侄女',
+            '弟弟→儿子': '侄子',
+            '弟弟→女儿': '侄女',
+            '姐姐→儿子': '外甥',
+            '姐姐→女儿': '外甥女',
+            '妹妹→儿子': '外甥',
+            '妹妹→女儿': '外甥女',
+            '父亲→父亲': '祖父',
+            '母亲→母亲': '外祖母',
+            '爷爷→儿子': '父亲',
+            '奶奶→女儿': '母亲',
+            '父亲→哥哥': '伯父',
+            '父亲→弟弟': '叔叔',
+            '母亲→姐姐': '姨妈',
+            '母亲→妹妹': '小姨',
+            '爷爷→孙子': '自己'
+        };
+
+        // DOM元素
+        const expressionEl = document.getElementById('expression');
+        const resultEl = document.getElementById('result');
+        const deleteBtn = document.getElementById('delete');
+        const clearBtn = document.getElementById('clear');
+        const calcBtn = document.getElementById('calculate');
+        
+        // 关系链数组
+        let chain = [];
+        
+        // 添加关系
+        document.querySelectorAll('[data-rel]').forEach(btn => {
+            if(btn.id) return;
+            btn.addEventListener('click', () => {
+                if(expressionEl.textContent === '请添加关系...') {
+                    expressionEl.textContent = '';
+                }
+                chain.push(btn.getAttribute('data-rel'));
+                updateExpression();
+            });
+        });
+        
+        // 删除最后一个关系
+        deleteBtn.addEventListener('click', () => {
+            if (chain.length > 0) {
+                chain.pop();
+                updateExpression();
+            }
+        });
+        
+        // 清空
+        clearBtn.addEventListener('click', () => {
+            chain = [];
+            expressionEl.textContent = '请添加关系...';
+            resultEl.textContent = '';
+            resultEl.style.color = '#5db0d5';
+        });
+        
+        // 计算
+        calcBtn.addEventListener('click', calculate);
+        
+        // 更新表达式显示
+        function updateExpression() {
+            expressionEl.textContent = chain.join(' → ');
+            resultEl.textContent = '';
+        }
+        
+        // 计算关系
+        function calculate() {
+            if (chain.length === 0) {
+                resultEl.textContent = '请输入关系链';
+                resultEl.style.color = '#ff8fbd';
+                return;
+            }
+            
+            const expression = chain.join('→');
+            
+            // 检查特殊关系
+            if (specialRelations[expression]) {
+                resultEl.textContent = `结果: ${specialRelations[expression]}`;
+                resultEl.style.color = '#5db0d5';
+                return;
+            }
+            
+            let current = { generation: 0, gender: '中性' };
+            
+            for (const rel of chain) {
+                const relData = relationships[rel];
+                if (!relData) {
+                    resultEl.textContent = `未知关系: ${rel}`;
+                    resultEl.style.color = '#ff8fbd';
+                    return;
+                }
+                
+                current.generation += relData.generation;
+                current.gender = relData.gender;
+            }
+            
+            const gen = current.generation;
+            const absGen = Math.abs(gen);
+            const gender = current.gender;
+            
+            if (absGen in titles) {
+                const title = titles[absGen][gender] || '';
+                
+                if (gen === 0) {
+                    if (gender === '男' && chain.includes('哥哥')) {
+                        resultEl.textContent = '结果: 哥哥';
+                    } else if (gender === '男' && chain.includes('弟弟')) {
+                        resultEl.textContent = '结果: 弟弟';
+                    } else if (gender === '女' && chain.includes('姐姐')) {
+                        resultEl.textContent = '结果: 姐姐';
+                    } else if (gender === '女' && chain.includes('妹妹')) {
+                        resultEl.textContent = '结果: 妹妹';
+                    } else {
+                        resultEl.textContent = `结果: ${title}`;
+                    }
+                } else {
+                    resultEl.textContent = `结果: ${title}`;
+                }
+            } else {
+                resultEl.textContent = `结果: 相差${absGen}代`;
+            }
+            
+            resultEl.style.color = '#5db0d5';
+        }
+        
+        // ====== 音乐控制功能 ======
+        const musicControl = document.getElementById('musicControl');
+        const bgm = document.getElementById('bgm');
+        let isPlaying = false;
+        
+        function toggleMusic() {
+            if (isPlaying) {
+                bgm.pause();
+                musicControl.classList.remove('playing');
+            } else {
+                bgm.play()
+                    .then(() => {
+                        isPlaying = true;
+                        musicControl.classList.add('playing');
+                    })
+                    .catch(error => {
+                        console.log('音乐播放失败:', error);
+                    });
+            }
+            isPlaying = !isPlaying;
+        }
+        
+        musicControl.addEventListener('click', toggleMusic);
+        bgm.pause();
+        musicControl.classList.remove('playing');
+    </script>
+</body>
+</html>
